@@ -33,7 +33,7 @@ def preprocess_text(text: str) -> str:
     """
 
     # Process the text through the spaCy NLP pipeline
-    doc = nlp(text.lower())
+    doc = get_nlp()(text.lower())
 
     # Filter out stopwords, punctuation and whitespace
     # Then lemmatise each remaining token to its root form
