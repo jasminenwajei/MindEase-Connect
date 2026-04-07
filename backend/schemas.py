@@ -1,0 +1,77 @@
+from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime
+
+class PatientCreate(BaseModel):
+    name: str
+    email: str
+    age: Optional[int] = None
+    therapy_style: Optional[str] = None
+    preferred_language: Optional[str] = "English"
+    availability: Optional[str] = None
+    concerns: Optional[str] = None
+    intake_text: str
+
+class PatientResponse(BaseModel):
+    id: int
+    name: str
+    email: str
+    therapy_style: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class TherapistCreate(BaseModel):
+    name: str
+    email: str
+    qualifications: Optional[str] = None
+    therapy_style: Optional[str] = None
+    specialisations: Optional[str] = None
+    availability: Optional[str] = None
+    session_price: Optional[float] = None
+    bio: str
+
+class TherapistResponse(BaseModel):
+    id: int
+    name: str
+    email: str
+    therapy_style: Optional[str] = None
+    specialisations: Optional[str] = None
+    session_price: Optional[float] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class MatchResult(BaseModel):
+    therapist_id: int
+    therapist_name: str
+    overall_score: float
+    tfidf_score: float
+    orientation_score: float
+    specialism_score: float
+    explanation: str
+
+class MatchResponse(BaseModel):
+    patient_id: int
+    matches: list[MatchResult]
+
+
+class BookingCreate(BaseModel):
+    patient_id: int
+    therapist_id: int
+    appointment_datetime: datetime
+
+class BookingResponse(BaseModel):
+    id: int
+    patient_id: int
+    therapist_id: int
+    appointment_datetime: datetime
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
