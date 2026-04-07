@@ -40,7 +40,7 @@ export default function BookingScreen({ route, navigation }) {
 
     try {
       // Post the booking request to the backend
-      await axios.post(`${API_BASE}/bookings`, {
+      await axios.post(`${API_BASE}/bookings/`, {
         patient_id: patientId,
         therapist_id: therapistId,
         appointment_date: `${date} ${time}`,

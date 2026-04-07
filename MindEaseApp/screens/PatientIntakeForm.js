@@ -47,7 +47,7 @@ export default function PatientIntakeForm({ navigation }) {
 
     try {
       // Post the patient intake data to the backend
-      const response = await axios.post(`${API_BASE}/patients`, {
+      const response = await axios.post(`${API_BASE}/patients/`, {
         name,
         email,
         age: parseInt(age),

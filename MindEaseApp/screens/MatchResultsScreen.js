@@ -34,15 +34,17 @@ export default function MatchResultsScreen({ route, navigation }) {
   }, []);
 
   const fetchMatches = async () => {
-    try {
-      const response = await axios.get(`${API_BASE}/matches/${patientId}`);
-      setMatches(response.data.matches);
-    } catch (error) {
-      Alert.alert('Error', 'Could not load your matches. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    const response = await axios.get(`${API_BASE}/matches/${patientId}/`, {
+      timeout: 30000,
+    });
+    setMatches(response.data.matches);
+  } catch (error) {
+    Alert.alert('Error', 'Could not load your matches. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Converts a score between 0 and 1 into a percentage string
   const formatScore = (score) => `${Math.round(score * 100)}%`;

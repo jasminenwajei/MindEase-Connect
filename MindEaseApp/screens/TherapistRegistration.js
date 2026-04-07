@@ -43,7 +43,7 @@ export default function TherapistRegistration({ navigation }) {
 
     try {
       // Post the therapist profile to the backend
-      await axios.post(`${API_BASE}/therapists`, {
+      await axios.post(`${API_BASE}/therapists/`, {
         name,
         email,
         qualifications,
