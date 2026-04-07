@@ -43,9 +43,7 @@ export default function BookingScreen({ route, navigation }) {
       await axios.post(`${API_BASE}/bookings/`, {
         patient_id: patientId,
         therapist_id: therapistId,
-        appointment_date: `${date} ${time}`,
-        notes: notes || '',
-        status: 'pending',
+        appointment_datetime: `${date}T${time}:00`,
       });
 
       // Confirm success and return to the home screen
