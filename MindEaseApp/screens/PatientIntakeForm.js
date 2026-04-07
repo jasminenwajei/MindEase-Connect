@@ -20,7 +20,9 @@ import axios from 'axios';
 // On a real device on the same network, replace with your Mac's local IP
 const API_BASE = 'http://192.168.1.149:8000';
 
-export default function PatientIntakeForm({ navigation }) {
+export default function PatientIntakeForm({ route, navigation }) {
+  // patientId may be passed from LoginScreen — used to identify the session
+  const patientId = route.params?.patientId ?? null;
 
   // Form field state
   const [name, setName] = useState('');
@@ -75,6 +77,15 @@ export default function PatientIntakeForm({ navigation }) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+
+      {/* Session banner — shown when arriving from the login screen */}
+      {patientId !== null && (
+        <View style={styles.sessionBanner}>
+          <Text style={styles.sessionBannerText}>
+            Logged in as Patient #{patientId}
+          </Text>
+        </View>
+      )}
 
       <Text style={styles.heading}>Tell us about yourself</Text>
       <Text style={styles.subheading}>
@@ -175,6 +186,19 @@ const styles = StyleSheet.create({
   content: {
     padding: 24,
     paddingBottom: 48,
+  },
+  sessionBanner: {
+    backgroundColor: '#EDE9FF',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    marginBottom: 20,
+    alignSelf: 'flex-start',
+  },
+  sessionBannerText: {
+    fontSize: 13,
+    color: '#6B4EFF',
+    fontWeight: '600',
   },
   heading: {
     fontSize: 22,

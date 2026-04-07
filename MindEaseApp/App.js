@@ -7,11 +7,13 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 
 // Import all screens
+import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/HomeScreen';
 import PatientIntakeForm from './screens/PatientIntakeForm';
 import MatchResultsScreen from './screens/MatchResultsScreen';
 import BookingScreen from './screens/BookingScreen';
 import TherapistRegistration from './screens/TherapistRegistration';
+import TherapistDashboard from './screens/TherapistDashboard';
 
 // Create the stack navigator instance
 const Stack = createStackNavigator();
@@ -20,13 +22,19 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Home"
+        initialRouteName="Login"
         screenOptions={{
           headerStyle: { backgroundColor: '#6B4EFF' },
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: 'bold' },
         }}
       >
+        {/* Login is the entry point — no header on this screen */}
+        <Stack.Screen
+          name="Login"
+          component={LoginScreen}
+          options={{ headerShown: false }}
+        />
         <Stack.Screen
           name="Home"
           component={HomeScreen}
@@ -51,6 +59,11 @@ export default function App() {
           name="TherapistRegistration"
           component={TherapistRegistration}
           options={{ title: 'Therapist Registration' }}
+        />
+        <Stack.Screen
+          name="TherapistDashboard"
+          component={TherapistDashboard}
+          options={{ title: 'Therapist Dashboard' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

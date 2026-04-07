@@ -48,6 +48,17 @@ export default function HomeScreen({ navigation }) {
         </Text>
       </TouchableOpacity>
 
+      {/* Therapist dashboard — view booked appointments */}
+      <TouchableOpacity
+        style={[styles.button, styles.dashboardButton]}
+        onPress={() => navigation.navigate('TherapistDashboard')}
+      >
+        <Text style={styles.buttonText}>Therapist Dashboard</Text>
+        <Text style={styles.buttonSubtext}>
+          View your upcoming booked appointments
+        </Text>
+      </TouchableOpacity>
+
       {/* Disclaimer clarifying prototype status */}
       <Text style={styles.disclaimer}>
         This is a prototype system for research purposes only.
@@ -100,6 +111,9 @@ const styles = StyleSheet.create({
   },
   therapistButton: {
     backgroundColor: '#2E7D6B',
+  },
+  dashboardButton: {
+    backgroundColor: '#1A5C4E',
   },
   buttonText: {
     fontSize: 18,

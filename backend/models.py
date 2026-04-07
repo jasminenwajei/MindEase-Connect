@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from database import Base
@@ -68,3 +68,14 @@ class CompatibilityScore(Base):
 
     patient = relationship("Patient", back_populates="compatibility_scores")
     therapist = relationship("Therapist", back_populates="compatibility_scores")
+
+
+class Availability(Base):
+    __tablename__ = "availability"
+
+    id = Column(Integer, primary_key=True, index=True)
+    therapist_id = Column(Integer, ForeignKey("therapists.id"), nullable=False)
+    slot_datetime = Column(String, nullable=False)  # ISO 8601 string
+    is_booked = Column(Boolean, default=False)
+
+    therapist = relationship("Therapist")

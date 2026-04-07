@@ -6,7 +6,7 @@ from database import engine
 import models
 
 # Import all routers so their endpoints are registered with the app
-from routers import patients, therapists, matching, bookings
+from routers import patients, therapists, matching, bookings, availability
 
 # Create all database tables defined in models.py if they don't already exist
 models.Base.metadata.create_all(bind=engine)
@@ -19,6 +19,7 @@ app.include_router(patients.router)
 app.include_router(therapists.router)
 app.include_router(matching.router)
 app.include_router(bookings.router)
+app.include_router(availability.router)
 
 # Root endpoint - confirms the API is running
 @app.get("/")

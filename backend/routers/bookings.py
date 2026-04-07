@@ -22,6 +22,17 @@ def create_booking(booking: schemas.BookingCreate, db: Session = Depends(get_db)
 
     db_booking = models.Booking(**booking.dict())
     db.add(db_booking)
+
+    # Mark the matching availability slot as booked
+    iso_str = booking.appointment_datetime.strftime("%Y-%m-%dT%H:%M:%S")
+    slot = db.query(models.Availability).filter(
+        models.Availability.therapist_id == booking.therapist_id,
+        models.Availability.slot_datetime == iso_str,
+        models.Availability.is_booked == False,
+    ).first()
+    if slot:
+        slot.is_booked = True
+
     db.commit()
     db.refresh(db_booking)
     return db_booking

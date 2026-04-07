@@ -60,6 +60,20 @@ class MatchResponse(BaseModel):
     matches: list[MatchResult]
 
 
+class AvailabilityCreate(BaseModel):
+    therapist_id: int
+    slot_datetime: str  # ISO 8601 string e.g. "2026-05-01T10:00:00"
+
+class AvailabilitySlot(BaseModel):
+    id: int
+    therapist_id: int
+    slot_datetime: str
+    is_booked: bool
+
+    class Config:
+        from_attributes = True
+
+
 class BookingCreate(BaseModel):
     patient_id: int
     therapist_id: int
