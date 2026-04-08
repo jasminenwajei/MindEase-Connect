@@ -141,8 +141,16 @@ export default function PatientDashboard({ route, navigation }) {
 
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.sessionPill}>
-          <Text style={styles.sessionPillText}>Patient #{patientId}</Text>
+        <View style={styles.headerTopRow}>
+          <View style={styles.sessionPill}>
+            <Text style={styles.sessionPillText}>Patient #{patientId}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.profileBtn}
+            onPress={() => navigation.navigate('PatientProfile', { patientId })}
+          >
+            <Text style={styles.profileBtnText}>View Profile</Text>
+          </TouchableOpacity>
         </View>
         <Text style={styles.heading}>My Appointments</Text>
         <Text style={styles.subheading}>Your upcoming and past therapy sessions.</Text>
@@ -243,15 +251,26 @@ const styles = StyleSheet.create({
 
   // Header
   header: { marginBottom: 24 },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
   sessionPill: {
     backgroundColor: '#EDE9FF',
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 5,
-    alignSelf: 'flex-start',
-    marginBottom: 12,
   },
   sessionPillText: { fontSize: 12, fontWeight: '700', color: '#6B4EFF' },
+  profileBtn: {
+    backgroundColor: '#6B4EFF',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+  },
+  profileBtnText: { fontSize: 12, fontWeight: '700', color: '#fff' },
   heading: { fontSize: 22, fontWeight: 'bold', color: '#333', marginBottom: 4 },
   subheading: { fontSize: 14, color: '#666', lineHeight: 20 },
   loader: { marginTop: 40 },

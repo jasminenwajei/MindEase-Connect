@@ -15,6 +15,8 @@ import BookingScreen from './screens/BookingScreen';
 import TherapistRegistration from './screens/TherapistRegistration';
 import TherapistDashboard from './screens/TherapistDashboard';
 import PatientDashboard from './screens/PatientDashboard';
+import PatientProfileScreen from './screens/PatientProfileScreen';
+import TherapistProfileScreen from './screens/TherapistProfileScreen';
 
 // Create the stack navigator instance
 const Stack = createStackNavigator();
@@ -70,6 +72,16 @@ export default function App() {
           name="PatientDashboard"
           component={PatientDashboard}
           options={{ title: 'My Appointments' }}
+        />
+        <Stack.Screen
+          name="PatientProfile"
+          component={PatientProfileScreen}
+          options={{ title: 'My Profile', headerShown: false }}
+        />
+        <Stack.Screen
+          name="TherapistProfile"
+          component={TherapistProfileScreen}
+          options={{ title: 'My Profile', headerShown: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>

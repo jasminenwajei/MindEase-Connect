@@ -196,6 +196,12 @@ export default function TherapistDashboard({ route, navigation }) {
       {/* Session banner */}
       <View style={styles.bannerBar}>
         <Text style={styles.bannerText}>Therapist #{therapistId}</Text>
+        <TouchableOpacity
+          style={styles.profileBtn}
+          onPress={() => navigation.navigate('TherapistProfile', { therapistId })}
+        >
+          <Text style={styles.profileBtnText}>View Profile</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Tab bar */}
@@ -392,10 +398,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#2E7D6B',
     paddingHorizontal: 20,
     paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   bannerText: {
     color: '#fff',
     fontSize: 13,
+    fontWeight: '700',
+  },
+  profileBtn: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  profileBtnText: {
+    color: '#fff',
+    fontSize: 12,
     fontWeight: '700',
   },
 

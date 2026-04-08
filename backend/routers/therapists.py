@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from datetime import datetime, timezone
 from database import get_db
 import models
 import schemas
@@ -32,3 +33,28 @@ def get_therapist(therapist_id: int, db: Session = Depends(get_db)):
     if not therapist:
         raise HTTPException(status_code=404, detail="Therapist not found")
     return therapist
+
+@router.get("/{therapist_id}/profile/", response_model=schemas.TherapistProfileResponse)
+def get_therapist_profile(therapist_id: int, db: Session = Depends(get_db)):
+    therapist = db.query(models.Therapist).filter(
+        models.Therapist.id == therapist_id
+    ).first()
+    if not therapist:
+        raise HTTPException(status_code=404, detail="Therapist not found")
+
+    now = datetime.now(timezone.utc)
+    confirmed_count = db.query(models.Booking).filter(
+        models.Booking.therapist_id == therapist_id,
+        models.Booking.status == "confirmed",
+        models.Booking.appointment_datetime > now,
+    ).count()
+
+    return schemas.TherapistProfileResponse(
+        id=therapist.id,
+        name=therapist.name,
+        email=therapist.email,
+        specialisations=therapist.specialisations,
+        therapy_style=therapist.therapy_style,
+        session_price=therapist.session_price,
+        upcoming_confirmed_bookings=confirmed_count,
+    )

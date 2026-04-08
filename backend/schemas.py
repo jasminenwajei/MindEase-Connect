@@ -112,3 +112,38 @@ class BookingWithTherapistResponse(BaseModel):
     status: str
     created_at: datetime
     match_percentage: Optional[float] = None
+
+
+class MatchedTherapistSummary(BaseModel):
+    therapist_id: int
+    name: str
+    specialisations: Optional[str] = None
+    match_percentage: int
+
+
+class PatientProfileResponse(BaseModel):
+    id: int
+    name: str
+    email: str
+    age: Optional[int] = None
+    therapy_style: Optional[str] = None
+    preferred_language: Optional[str] = None
+    availability: Optional[str] = None
+    concerns: Optional[str] = None
+    matched_therapists: list[MatchedTherapistSummary]
+
+    class Config:
+        from_attributes = True
+
+
+class TherapistProfileResponse(BaseModel):
+    id: int
+    name: str
+    email: str
+    specialisations: Optional[str] = None
+    therapy_style: Optional[str] = None
+    session_price: Optional[float] = None
+    upcoming_confirmed_bookings: int
+
+    class Config:
+        from_attributes = True
