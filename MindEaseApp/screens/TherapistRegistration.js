@@ -26,13 +26,23 @@ export default function TherapistRegistration({ navigation }) {
   const [qualifications, setQualifications] = useState('');
   const [therapyStyle, setTherapyStyle] = useState('');
   const [specialisations, setSpecialisations] = useState('');
-  const [availability, setAvailability] = useState('');
+  const [selectedDays, setSelectedDays] = useState([]);
   const [sessionPrice, setSessionPrice] = useState('');
   const [bio, setBio] = useState('');
+
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+  const toggleDay = (day) => {
+    setSelectedDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+    );
+  };
 
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
+
+    const availability = selectedDays.join(',');
 
     // Validate all required fields
     if (!name || !email || !pin || !qualifications || !therapyStyle || !specialisations || !availability || !sessionPrice || !bio) {
@@ -145,12 +155,23 @@ export default function TherapistRegistration({ navigation }) {
       />
 
       <Text style={styles.label}>Availability</Text>
-      <TextInput
-        style={styles.input}
-        value={availability}
-        onChangeText={setAvailability}
-        placeholder="e.g. Monday, Tuesday, Thursday"
-      />
+      <View style={styles.dayRow}>
+        {DAYS.map((day) => {
+          const selected = selectedDays.includes(day);
+          return (
+            <TouchableOpacity
+              key={day}
+              style={[styles.dayButton, selected && styles.dayButtonSelected]}
+              onPress={() => toggleDay(day)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.dayButtonText, selected && styles.dayButtonTextSelected]}>
+                {day.slice(0, 3)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
 
       <Text style={styles.label}>Session Price (£)</Text>
       <TextInput
@@ -223,6 +244,30 @@ const styles = StyleSheet.create({
   multiline: {
     minHeight: 80,
     textAlignVertical: 'top',
+  },
+  dayRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  dayButton: {
+    backgroundColor: '#E8E8E8',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    minWidth: 44,
+    alignItems: 'center',
+  },
+  dayButtonSelected: {
+    backgroundColor: '#2E7D6B',
+  },
+  dayButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666',
+  },
+  dayButtonTextSelected: {
+    color: '#fff',
   },
   button: {
     backgroundColor: '#2E7D6B',
