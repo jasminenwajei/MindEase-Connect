@@ -130,10 +130,17 @@ class PatientProfileResponse(BaseModel):
     preferred_language: Optional[str] = None
     availability: Optional[str] = None
     concerns: Optional[str] = None
+    intake_text: Optional[str] = None
     matched_therapists: list[MatchedTherapistSummary]
 
     class Config:
         from_attributes = True
+
+
+class PatientPreferencesUpdate(BaseModel):
+    therapy_style: Optional[str] = None
+    availability: Optional[str] = None
+    intake_text: Optional[str] = None
 
 
 class TherapistProfileResponse(BaseModel):
@@ -147,3 +154,7 @@ class TherapistProfileResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class TherapistPriceUpdate(BaseModel):
+    session_price: float

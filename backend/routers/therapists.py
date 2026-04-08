@@ -58,3 +58,14 @@ def get_therapist_profile(therapist_id: int, db: Session = Depends(get_db)):
         session_price=therapist.session_price,
         upcoming_confirmed_bookings=confirmed_count,
     )
+
+@router.patch("/{therapist_id}/price/", response_model=schemas.TherapistResponse)
+def update_therapist_price(therapist_id: int, update: schemas.TherapistPriceUpdate, db: Session = Depends(get_db)):
+    therapist = db.query(models.Therapist).filter(models.Therapist.id == therapist_id).first()
+    if not therapist:
+        raise HTTPException(status_code=404, detail="Therapist not found")
+
+    therapist.session_price = update.session_price
+    db.commit()
+    db.refresh(therapist)
+    return therapist

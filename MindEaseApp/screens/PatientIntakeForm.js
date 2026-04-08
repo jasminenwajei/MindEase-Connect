@@ -13,12 +13,23 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Modal,
 } from 'react-native';
 import axios from 'axios';
 
-// Base URL of the FastAPI backend running locally
-// On a real device on the same network, replace with your Mac's local IP
 const API_BASE = 'http://192.168.1.149:8000';
+
+const THERAPY_STYLES = [
+  'CBT (Cognitive Behavioural Therapy)',
+  'Person-Centred',
+  'Psychodynamic',
+  'Mindfulness-Based',
+  'DBT (Dialectical Behaviour Therapy)',
+  'Integrative',
+  'Open to Any',
+];
+
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 export default function PatientIntakeForm({ route, navigation }) {
   // patientId may be passed from LoginScreen — used to identify the session
@@ -31,14 +42,22 @@ export default function PatientIntakeForm({ route, navigation }) {
   const [age, setAge] = useState('');
   const [concerns, setConcerns] = useState('');
   const [therapyStyle, setTherapyStyle] = useState('');
-  const [availability, setAvailability] = useState('');
+  const [selectedDays, setSelectedDays] = useState([]);
   const [intakeText, setIntakeText] = useState('');
 
-  // Loading state to show spinner during API call
+  // UI state
+  const [showStylePicker, setShowStylePicker] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const toggleDay = (day) => {
+    setSelectedDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+    );
+  };
 
   // Handles form submission — validates, posts to API, navigates to results
   const handleSubmit = async () => {
+    const availability = selectedDays.join(',');
 
     // Basic validation — all fields are required for the matching algorithm
     if (!name || !email || !pin || !age || !concerns || !therapyStyle || !availability || !intakeText) {
@@ -152,25 +171,38 @@ export default function PatientIntakeForm({ route, navigation }) {
         numberOfLines={3}
       />
 
-      {/* Therapy style preference */}
+      {/* Therapy style dropdown */}
       <Text style={styles.label}>Preferred Therapy Style</Text>
-      <TextInput
-        style={[styles.input, styles.multiline]}
-        value={therapyStyle}
-        onChangeText={setTherapyStyle}
-        placeholder="e.g. I am interested in CBT or mindfulness-based approaches"
-        multiline
-        numberOfLines={3}
-      />
+      <TouchableOpacity
+        style={styles.pickerButton}
+        onPress={() => setShowStylePicker(true)}
+        activeOpacity={0.7}
+      >
+        <Text style={therapyStyle ? styles.pickerButtonText : styles.pickerPlaceholder}>
+          {therapyStyle || 'Select a therapy style…'}
+        </Text>
+        <Text style={styles.pickerChevron}>▾</Text>
+      </TouchableOpacity>
 
-      {/* Availability */}
+      {/* Day selector */}
       <Text style={styles.label}>Availability</Text>
-      <TextInput
-        style={styles.input}
-        value={availability}
-        onChangeText={setAvailability}
-        placeholder="e.g. Monday, Wednesday, Friday"
-      />
+      <View style={styles.dayRow}>
+        {DAYS.map((day) => {
+          const selected = selectedDays.includes(day);
+          return (
+            <TouchableOpacity
+              key={day}
+              style={[styles.dayButton, selected && styles.dayButtonSelected]}
+              onPress={() => toggleDay(day)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.dayButtonText, selected && styles.dayButtonTextSelected]}>
+                {day.slice(0, 3)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
 
       {/* Long-form intake text */}
       <Text style={styles.label}>Tell us more about your situation</Text>
@@ -194,6 +226,30 @@ export default function PatientIntakeForm({ route, navigation }) {
           <Text style={styles.buttonText}>Find My Matches</Text>
         </TouchableOpacity>
       )}
+
+      {/* Therapy style picker modal */}
+      <Modal visible={showStylePicker} transparent animationType="fade">
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowStylePicker(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Therapy Style</Text>
+            {THERAPY_STYLES.map((style) => (
+              <TouchableOpacity
+                key={style}
+                style={[styles.modalOption, therapyStyle === style && styles.modalOptionSelected]}
+                onPress={() => { setTherapyStyle(style); setShowStylePicker(false); }}
+              >
+                <Text style={[styles.modalOptionText, therapyStyle === style && styles.modalOptionTextSelected]}>
+                  {style}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
     </ScrollView>
   );
@@ -253,6 +309,61 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: 'top',
   },
+
+  // Therapy style dropdown button
+  pickerButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  pickerButtonText: {
+    fontSize: 14,
+    color: '#333',
+    flex: 1,
+  },
+  pickerPlaceholder: {
+    fontSize: 14,
+    color: '#999',
+    flex: 1,
+  },
+  pickerChevron: {
+    fontSize: 16,
+    color: '#6B4EFF',
+    marginLeft: 8,
+  },
+
+  // Day selector
+  dayRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  dayButton: {
+    backgroundColor: '#E8E8E8',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    minWidth: 44,
+    alignItems: 'center',
+  },
+  dayButtonSelected: {
+    backgroundColor: '#6B4EFF',
+  },
+  dayButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666',
+  },
+  dayButtonTextSelected: {
+    color: '#fff',
+  },
+
+  // Submit button
   button: {
     backgroundColor: '#6B4EFF',
     padding: 16,
@@ -273,5 +384,46 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     color: '#666',
+  },
+
+  // Therapy style modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 8,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#333',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0EEF8',
+  },
+  modalOption: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  modalOptionSelected: {
+    backgroundColor: '#EDE9FF',
+  },
+  modalOptionText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  modalOptionTextSelected: {
+    color: '#6B4EFF',
+    fontWeight: '600',
   },
 });

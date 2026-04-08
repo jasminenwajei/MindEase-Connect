@@ -2,25 +2,45 @@
 // Displays a patient's profile: name, email, therapy preferences from the
 // intake form, and a list of matched therapists with name, specialisation,
 // and match percentage badge.
+// Therapy style, availability, and intake text are editable via a PATCH request.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
   ActivityIndicator,
   Alert,
+  Modal,
 } from 'react-native';
 import axios from 'axios';
 
 const API_BASE = 'http://192.168.1.149:8000';
 
+const THERAPY_STYLES = [
+  'CBT (Cognitive Behavioural Therapy)',
+  'Person-Centred',
+  'Psychodynamic',
+  'Mindfulness-Based',
+  'DBT (Dialectical Behaviour Therapy)',
+  'Integrative',
+  'Open to Any',
+];
+
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
 function matchBadgeColour(pct) {
   if (pct >= 80) return { bg: '#D4EDDA', text: '#1E7E34' };
   if (pct >= 60) return { bg: '#EDE9FF', text: '#6B4EFF' };
   return { bg: '#FFF3CD', text: '#856404' };
+}
+
+function parseAvailability(avail) {
+  if (!avail) return [];
+  return avail.split(',').map((d) => d.trim()).filter((d) => DAYS.includes(d));
 }
 
 export default function PatientProfileScreen({ route, navigation }) {
@@ -29,13 +49,63 @@ export default function PatientProfileScreen({ route, navigation }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  // Edit mode state
+  const [editing, setEditing] = useState(false);
+  const [editTherapyStyle, setEditTherapyStyle] = useState('');
+  const [editSelectedDays, setEditSelectedDays] = useState([]);
+  const [editIntakeText, setEditIntakeText] = useState('');
+  const [showStylePicker, setShowStylePicker] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const loadProfile = useCallback(() => {
+    setLoading(true);
     axios
       .get(`${API_BASE}/patients/${patientId}/profile/`)
       .then((res) => setProfile(res.data))
       .catch(() => Alert.alert('Error', 'Could not load your profile.'))
       .finally(() => setLoading(false));
   }, [patientId]);
+
+  // Load on mount
+  React.useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  const startEditing = () => {
+    setEditTherapyStyle(profile.therapy_style || '');
+    setEditSelectedDays(parseAvailability(profile.availability));
+    setEditIntakeText(profile.intake_text || '');
+    setEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setEditing(false);
+    setShowStylePicker(false);
+  };
+
+  const toggleDay = (day) => {
+    setEditSelectedDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+    );
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await axios.patch(`${API_BASE}/patients/${patientId}/preferences/`, {
+        therapy_style: editTherapyStyle,
+        availability: editSelectedDays.join(','),
+        intake_text: editIntakeText,
+      });
+      setEditing(false);
+      loadProfile();
+    } catch (error) {
+      const message = error.response?.data?.detail || 'Could not save your preferences.';
+      Alert.alert('Save Error', message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -53,10 +123,8 @@ export default function PatientProfileScreen({ route, navigation }) {
     );
   }
 
-  const preferences = [
-    { label: 'Therapy style', value: profile.therapy_style },
+  const staticPreferences = [
     { label: 'Concerns', value: profile.concerns },
-    { label: 'Availability', value: profile.availability },
     { label: 'Preferred language', value: profile.preferred_language },
     { label: 'Age', value: profile.age != null ? String(profile.age) : null },
   ].filter((p) => p.value);
@@ -81,17 +149,111 @@ export default function PatientProfileScreen({ route, navigation }) {
       </View>
 
       {/* Therapy preferences */}
-      <Text style={styles.sectionTitle}>Therapy Preferences</Text>
+      <View style={styles.sectionTitleRow}>
+        <Text style={styles.sectionTitle}>Therapy Preferences</Text>
+        {!editing && (
+          <TouchableOpacity onPress={startEditing}>
+            <Text style={styles.editLink}>Edit</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
       <View style={styles.card}>
-        {preferences.length === 0 ? (
-          <Text style={styles.emptyNote}>No preferences recorded.</Text>
-        ) : (
-          preferences.map((pref) => (
-            <View key={pref.label} style={styles.prefRow}>
-              <Text style={styles.prefLabel}>{pref.label}</Text>
-              <Text style={styles.prefValue}>{pref.value}</Text>
+        {editing ? (
+          <>
+            {/* Therapy style dropdown */}
+            <Text style={styles.editLabel}>Therapy Style</Text>
+            <TouchableOpacity
+              style={styles.pickerButton}
+              onPress={() => setShowStylePicker(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={editTherapyStyle ? styles.pickerButtonText : styles.pickerPlaceholder}>
+                {editTherapyStyle || 'Select a therapy style…'}
+              </Text>
+              <Text style={styles.pickerChevron}>▾</Text>
+            </TouchableOpacity>
+
+            {/* Day selector */}
+            <Text style={styles.editLabel}>Availability</Text>
+            <View style={styles.dayRow}>
+              {DAYS.map((day) => {
+                const selected = editSelectedDays.includes(day);
+                return (
+                  <TouchableOpacity
+                    key={day}
+                    style={[styles.dayButton, selected && styles.dayButtonSelected]}
+                    onPress={() => toggleDay(day)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.dayButtonText, selected && styles.dayButtonTextSelected]}>
+                      {day.slice(0, 3)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
-          ))
+
+            {/* Intake text */}
+            <Text style={styles.editLabel}>More about your situation</Text>
+            <TextInput
+              style={[styles.editInput, styles.editMultiline]}
+              value={editIntakeText}
+              onChangeText={setEditIntakeText}
+              placeholder="Describe your situation and therapy goals..."
+              multiline
+              numberOfLines={5}
+              textAlignVertical="top"
+            />
+
+            {/* Save / Cancel */}
+            <View style={styles.saveRow}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={cancelEditing}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
+                onPress={handleSave}
+                disabled={saving}
+              >
+                {saving
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Text style={styles.saveBtnText}>Save</Text>}
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : (
+          <>
+            {/* Editable fields shown as static rows when not editing */}
+            {profile.therapy_style ? (
+              <View style={styles.prefRow}>
+                <Text style={styles.prefLabel}>Therapy style</Text>
+                <Text style={styles.prefValue}>{profile.therapy_style}</Text>
+              </View>
+            ) : null}
+            {profile.availability ? (
+              <View style={styles.prefRow}>
+                <Text style={styles.prefLabel}>Availability</Text>
+                <Text style={styles.prefValue}>{profile.availability}</Text>
+              </View>
+            ) : null}
+            {profile.intake_text ? (
+              <View style={styles.prefRow}>
+                <Text style={styles.prefLabel}>More about your situation</Text>
+                <Text style={styles.prefValue}>{profile.intake_text}</Text>
+              </View>
+            ) : null}
+            {/* Static (non-editable) preference rows */}
+            {staticPreferences.map((pref) => (
+              <View key={pref.label} style={styles.prefRow}>
+                <Text style={styles.prefLabel}>{pref.label}</Text>
+                <Text style={styles.prefValue}>{pref.value}</Text>
+              </View>
+            ))}
+            {!profile.therapy_style && !profile.availability && !profile.intake_text && staticPreferences.length === 0 && (
+              <Text style={styles.emptyNote}>No preferences recorded.</Text>
+            )}
+          </>
         )}
       </View>
 
@@ -125,6 +287,30 @@ export default function PatientProfileScreen({ route, navigation }) {
           );
         })
       )}
+
+      {/* Therapy style picker modal */}
+      <Modal visible={showStylePicker} transparent animationType="fade">
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowStylePicker(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Therapy Style</Text>
+            {THERAPY_STYLES.map((style) => (
+              <TouchableOpacity
+                key={style}
+                style={[styles.modalOption, editTherapyStyle === style && styles.modalOptionSelected]}
+                onPress={() => { setEditTherapyStyle(style); setShowStylePicker(false); }}
+              >
+                <Text style={[styles.modalOptionText, editTherapyStyle === style && styles.modalOptionTextSelected]}>
+                  {style}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
     </ScrollView>
   );
@@ -199,11 +385,21 @@ const styles = StyleSheet.create({
   },
 
   // Section headings
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
     color: '#333',
-    marginBottom: 10,
+  },
+  editLink: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B4EFF',
   },
 
   // Generic white card
@@ -225,7 +421,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
 
-  // Preference rows
+  // Preference rows (view mode)
   prefRow: {
     paddingVertical: 10,
     borderBottomWidth: 1,
@@ -243,6 +439,113 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
     lineHeight: 20,
+  },
+
+  // Edit mode controls
+  editLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B4EFF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: 14,
+    marginBottom: 6,
+  },
+  pickerButton: {
+    backgroundColor: '#F8F7FF',
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  pickerButtonText: {
+    fontSize: 14,
+    color: '#333',
+    flex: 1,
+  },
+  pickerPlaceholder: {
+    fontSize: 14,
+    color: '#999',
+    flex: 1,
+  },
+  pickerChevron: {
+    fontSize: 16,
+    color: '#6B4EFF',
+    marginLeft: 8,
+  },
+  dayRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  dayButton: {
+    backgroundColor: '#E8E8E8',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    minWidth: 44,
+    alignItems: 'center',
+  },
+  dayButtonSelected: {
+    backgroundColor: '#6B4EFF',
+  },
+  dayButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666',
+  },
+  dayButtonTextSelected: {
+    color: '#fff',
+  },
+  editInput: {
+    backgroundColor: '#F8F7FF',
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: '#333',
+  },
+  editMultiline: {
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  saveRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 16,
+  },
+  cancelBtn: {
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  cancelBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  saveBtn: {
+    backgroundColor: '#6B4EFF',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    minWidth: 70,
+  },
+  saveBtnDisabled: {
+    opacity: 0.6,
+  },
+  saveBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
   },
 
   // Match cards
@@ -284,5 +587,46 @@ const styles = StyleSheet.create({
   matchBadgeText: {
     fontSize: 13,
     fontWeight: '800',
+  },
+
+  // Therapy style modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 8,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#333',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0EEF8',
+  },
+  modalOption: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  modalOptionSelected: {
+    backgroundColor: '#EDE9FF',
+  },
+  modalOptionText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  modalOptionTextSelected: {
+    color: '#6B4EFF',
+    fontWeight: '600',
   },
 });
