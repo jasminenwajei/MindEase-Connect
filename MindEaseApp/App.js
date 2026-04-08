@@ -14,6 +14,7 @@ import MatchResultsScreen from './screens/MatchResultsScreen';
 import BookingScreen from './screens/BookingScreen';
 import TherapistRegistration from './screens/TherapistRegistration';
 import TherapistDashboard from './screens/TherapistDashboard';
+import PatientDashboard from './screens/PatientDashboard';
 
 // Create the stack navigator instance
 const Stack = createStackNavigator();
@@ -64,6 +65,11 @@ export default function App() {
           name="TherapistDashboard"
           component={TherapistDashboard}
           options={{ title: 'Therapist Dashboard' }}
+        />
+        <Stack.Screen
+          name="PatientDashboard"
+          component={PatientDashboard}
+          options={{ title: 'My Appointments' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

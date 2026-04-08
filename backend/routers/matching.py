@@ -16,7 +16,7 @@ from matching.scorer import run_matching
 router = APIRouter(prefix="/matches", tags=["matching"])
 
 
-@router.get("/{patient_id}", response_model=schemas.MatchResponse)
+@router.get("/{patient_id}/", response_model=schemas.MatchResponse)
 def get_matches(patient_id: int, db: Session = Depends(get_db)):
     """
     GET /matches/{patient_id}
@@ -40,8 +40,15 @@ def get_matches(patient_id: int, db: Session = Depends(get_db)):
     if not therapists:
         raise HTTPException(status_code=404, detail="No therapists registered yet")
 
+    # Build a lookup for therapist specialisations so they can be included in results
+    therapist_specialisations = {t.id: t.specialisations for t in therapists}
+
     # Run the matching algorithm and get ranked results
     match_results = run_matching(patient, therapists)
+
+    # Attach specialisations to each result dict
+    for r in match_results:
+        r["specialisations"] = therapist_specialisations.get(r["therapist_id"])
 
     # Save each compatibility score to the database for later analysis
     # This is important for the results and evaluation chapter of the report

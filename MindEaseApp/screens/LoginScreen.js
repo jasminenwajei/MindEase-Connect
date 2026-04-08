@@ -1,9 +1,10 @@
 // screens/LoginScreen.js
-// Prototype login screen for MindEase Connect.
-// No real authentication — collects a role selection and numeric user ID,
-// then routes patients to the intake form and therapists to the dashboard.
+// Prototype entry screen for MindEase Connect.
+// Two role cards. Tapping a card expands it to reveal Log In / Sign Up options.
+// Only one card is expanded at a time.
+// Log In shows a numeric ID input; Sign Up navigates to the registration screen.
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,28 +12,59 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
+  ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Animated,
   Alert,
+  LayoutAnimation,
+  UIManager,
 } from 'react-native';
 
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 export default function LoginScreen({ navigation }) {
-  const [role, setRole] = useState(null);   // 'patient' | 'therapist' | null
+  // Which role card is expanded: null | 'patient' | 'therapist'
+  const [expandedRole, setExpandedRole] = useState(null);
+  // Whether the Log In sub-panel is open within the expanded card
+  const [showLogin, setShowLogin] = useState(false);
   const [userId, setUserId] = useState('');
 
-  // Slide-in animation for the ID panel
-  const slideAnim = useRef(new Animated.Value(0)).current;
+  const animate = () =>
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 
-  const selectRole = (selected) => {
-    setRole(selected);
+  const handleRoleToggle = (role) => {
+    animate();
+    if (expandedRole === role) {
+      setExpandedRole(null);
+      setShowLogin(false);
+      setUserId('');
+    } else {
+      setExpandedRole(role);
+      setShowLogin(false);
+      setUserId('');
+    }
+  };
+
+  const handleLogInPress = () => {
+    animate();
+    setShowLogin(true);
     setUserId('');
-    Animated.spring(slideAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      tension: 60,
-      friction: 9,
-    }).start();
+  };
+
+  const handleBackToChoice = () => {
+    animate();
+    setShowLogin(false);
+    setUserId('');
+  };
+
+  const handleSignUp = () => {
+    if (expandedRole === 'patient') {
+      navigation.navigate('PatientIntakeForm');
+    } else {
+      navigation.navigate('TherapistRegistration');
+    }
   };
 
   const handleContinue = () => {
@@ -41,25 +73,16 @@ export default function LoginScreen({ navigation }) {
       Alert.alert('Invalid ID', 'Please enter a valid numeric ID to continue.');
       return;
     }
-
-    if (role === 'patient') {
-      navigation.navigate('PatientIntakeForm', { patientId: id });
+    if (expandedRole === 'patient') {
+      navigation.navigate('PatientDashboard', { patientId: id });
     } else {
       navigation.navigate('TherapistDashboard', { therapistId: id });
     }
   };
 
-  const idPanelStyle = {
-    opacity: slideAnim,
-    transform: [
-      {
-        translateY: slideAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [20, 0],
-        }),
-      },
-    ],
-  };
+  const isPatient = expandedRole === 'patient';
+  const accent = isPatient ? '#6B4EFF' : '#2E7D6B';
+  const accentLight = isPatient ? '#EDE9FF' : '#E6F5F1';
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -67,9 +90,11 @@ export default function LoginScreen({ navigation }) {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.container}>
-
-          {/* ── Logo / branding ── */}
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* ── Branding ── */}
           <View style={styles.logoBlock}>
             <View style={styles.logoCircle}>
               <Text style={styles.logoInitials}>MC</Text>
@@ -80,91 +105,159 @@ export default function LoginScreen({ navigation }) {
             </Text>
           </View>
 
-          {/* ── Role buttons ── */}
-          <Text style={styles.prompt}>Who are you?</Text>
+          <Text style={styles.prompt}>Welcome — who are you?</Text>
 
-          <View style={styles.roleRow}>
+          {/* ── Patient card ── */}
+          <View style={[
+            styles.card,
+            expandedRole === 'patient' && { borderColor: '#6B4EFF', borderWidth: 2 },
+          ]}>
             <TouchableOpacity
-              style={[
-                styles.roleButton,
-                role === 'patient' && styles.roleButtonActivePatient,
-              ]}
-              onPress={() => selectRole('patient')}
+              style={styles.cardHeader}
+              onPress={() => handleRoleToggle('patient')}
               activeOpacity={0.8}
             >
-              <Text style={styles.roleIcon}>🧠</Text>
-              <Text style={[styles.roleLabel, role === 'patient' && styles.roleLabelActive]}>
-                I'm a Patient
-              </Text>
-              <Text style={[styles.roleSubtext, role === 'patient' && styles.roleSubtextActive]}>
-                Find a matched therapist
+              <Text style={styles.cardIcon}>🧠</Text>
+              <View style={styles.cardHeaderText}>
+                <Text style={[
+                  styles.cardTitle,
+                  expandedRole === 'patient' && { color: '#6B4EFF' },
+                ]}>
+                  I'm a Patient
+                </Text>
+                <Text style={styles.cardSubtitle}>Find a matched therapist</Text>
+              </View>
+              <Text style={[
+                styles.chevron,
+                expandedRole === 'patient' && { color: '#6B4EFF' },
+              ]}>
+                {expandedRole === 'patient' ? '▲' : '▼'}
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[
-                styles.roleButton,
-                role === 'therapist' && styles.roleButtonActiveTherapist,
-              ]}
-              onPress={() => selectRole('therapist')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.roleIcon}>🩺</Text>
-              <Text style={[styles.roleLabel, role === 'therapist' && styles.roleLabelActive]}>
-                I'm a Therapist
-              </Text>
-              <Text style={[styles.roleSubtext, role === 'therapist' && styles.roleSubtextActive]}>
-                View your appointments
-              </Text>
-            </TouchableOpacity>
+            {expandedRole === 'patient' && (
+              <ExpandedBody
+                accentColor="#6B4EFF"
+                showLogin={showLogin}
+                userId={userId}
+                onUserIdChange={setUserId}
+                onLogInPress={handleLogInPress}
+                onSignUpPress={handleSignUp}
+                onContinue={handleContinue}
+                onBack={handleBackToChoice}
+                loginLabel="patient"
+              />
+            )}
           </View>
 
-          {/* ── ID input panel (slides in after role chosen) ── */}
-          {role !== null && (
-            <Animated.View style={[styles.idPanel, idPanelStyle]}>
-              <Text style={styles.idLabel}>
-                Enter your{' '}
-                <Text style={styles.idLabelBold}>
-                  {role === 'patient' ? 'patient' : 'therapist'}
-                </Text>{' '}
-                ID
+          {/* ── Therapist card ── */}
+          <View style={[
+            styles.card,
+            expandedRole === 'therapist' && { borderColor: '#2E7D6B', borderWidth: 2 },
+          ]}>
+            <TouchableOpacity
+              style={styles.cardHeader}
+              onPress={() => handleRoleToggle('therapist')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.cardIcon}>🩺</Text>
+              <View style={styles.cardHeaderText}>
+                <Text style={[
+                  styles.cardTitle,
+                  expandedRole === 'therapist' && { color: '#2E7D6B' },
+                ]}>
+                  I'm a Therapist
+                </Text>
+                <Text style={styles.cardSubtitle}>View your appointments</Text>
+              </View>
+              <Text style={[
+                styles.chevron,
+                expandedRole === 'therapist' && { color: '#2E7D6B' },
+              ]}>
+                {expandedRole === 'therapist' ? '▲' : '▼'}
               </Text>
-              <TextInput
-                style={[
-                  styles.idInput,
-                  role === 'therapist' && styles.idInputTherapist,
-                ]}
-                value={userId}
-                onChangeText={setUserId}
-                placeholder="e.g. 1"
-                keyboardType="number-pad"
-                maxLength={6}
-                autoFocus
-                returnKeyType="done"
-                onSubmitEditing={handleContinue}
-              />
-              <TouchableOpacity
-                style={[
-                  styles.continueButton,
-                  role === 'therapist' && styles.continueButtonTherapist,
-                ]}
-                onPress={handleContinue}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.continueText}>Continue →</Text>
-              </TouchableOpacity>
-            </Animated.View>
-          )}
+            </TouchableOpacity>
 
-          {/* ── Footer disclaimer ── */}
+            {expandedRole === 'therapist' && (
+              <ExpandedBody
+                accentColor="#2E7D6B"
+                showLogin={showLogin}
+                userId={userId}
+                onUserIdChange={setUserId}
+                onLogInPress={handleLogInPress}
+                onSignUpPress={handleSignUp}
+                onContinue={handleContinue}
+                onBack={handleBackToChoice}
+                loginLabel="therapist"
+              />
+            )}
+          </View>
+
           <Text style={styles.disclaimer}>
             Prototype system for research purposes only.{'\n'}
             Not a substitute for professional medical advice.
           </Text>
-
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+  );
+}
+
+// ── Expanded body (Log In / Sign Up choice, then Log In panel) ─────────────
+function ExpandedBody({
+  accentColor, showLogin,
+  userId, onUserIdChange,
+  onLogInPress, onSignUpPress,
+  onContinue, onBack, loginLabel,
+}) {
+  return (
+    <View style={styles.cardBody}>
+      {!showLogin ? (
+        // Choice: Log In or Sign Up
+        <View style={styles.actionRow}>
+          <TouchableOpacity
+            style={[styles.actionBtn, { borderColor: accentColor }]}
+            onPress={onLogInPress}
+          >
+            <Text style={[styles.actionBtnText, { color: accentColor }]}>Log In</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionBtnFilled, { backgroundColor: accentColor }]}
+            onPress={onSignUpPress}
+          >
+            <Text style={styles.actionBtnTextFilled}>Sign Up</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        // Log In panel: ID input + Continue
+        <View>
+          <Text style={styles.idLabel}>
+            Enter your{' '}
+            <Text style={{ fontWeight: '700', color: '#222' }}>{loginLabel}</Text> ID
+          </Text>
+          <TextInput
+            style={[styles.idInput, { borderColor: accentColor }]}
+            value={userId}
+            onChangeText={onUserIdChange}
+            placeholder="e.g. 1"
+            keyboardType="number-pad"
+            maxLength={6}
+            autoFocus
+            returnKeyType="done"
+            onSubmitEditing={onContinue}
+          />
+          <TouchableOpacity
+            style={[styles.continueBtn, { backgroundColor: accentColor }]}
+            onPress={onContinue}
+          >
+            <Text style={styles.continueBtnText}>Continue →</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.backLink} onPress={onBack}>
+            <Text style={[styles.backLinkText, { color: accentColor }]}>← Back</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -173,21 +266,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F3FF',
   },
-  flex: {
-    flex: 1,
-  },
+  flex: { flex: 1 },
   container: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 28,
-    paddingBottom: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 40,
   },
 
-  // Logo block
+  // Branding
   logoBlock: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 32,
   },
   logoCircle: {
     width: 72,
@@ -199,7 +290,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     shadowColor: '#6B4EFF',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 6,
   },
@@ -214,7 +305,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#6B4EFF',
     marginBottom: 6,
-    letterSpacing: 0.3,
   },
   tagline: {
     fontSize: 13,
@@ -224,119 +314,125 @@ const styles = StyleSheet.create({
     maxWidth: 260,
   },
 
-  // Role selection
   prompt: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#444',
-    marginBottom: 14,
-  },
-  roleRow: {
-    flexDirection: 'row',
-    gap: 12,
-    width: '100%',
-    marginBottom: 24,
-  },
-  roleButton: {
-    flex: 1,
-    borderWidth: 2,
-    borderColor: '#DDD',
-    borderRadius: 14,
-    paddingVertical: 18,
-    paddingHorizontal: 10,
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  roleButtonActivePatient: {
-    borderColor: '#6B4EFF',
-    backgroundColor: '#EDE9FF',
-  },
-  roleButtonActiveTherapist: {
-    borderColor: '#2E7D6B',
-    backgroundColor: '#E6F5F1',
-  },
-  roleIcon: {
-    fontSize: 26,
-    marginBottom: 8,
-  },
-  roleLabel: {
-    fontSize: 14,
-    fontWeight: '700',
     color: '#555',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  roleLabelActive: {
-    color: '#333',
-  },
-  roleSubtext: {
-    fontSize: 11,
-    color: '#999',
-    textAlign: 'center',
-  },
-  roleSubtextActive: {
-    color: '#666',
+    marginBottom: 16,
   },
 
-  // ID input panel
-  idPanel: {
+  // Role cards
+  card: {
     width: '100%',
     backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    borderWidth: 1.5,
+    borderColor: '#E0E0E0',
+    marginBottom: 14,
+    overflow: 'hidden',
   },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 18,
+  },
+  cardIcon: {
+    fontSize: 28,
+    marginRight: 14,
+  },
+  cardHeaderText: {
+    flex: 1,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 2,
+  },
+  cardSubtitle: {
+    fontSize: 12,
+    color: '#888',
+  },
+  chevron: {
+    fontSize: 12,
+    color: '#AAA',
+    marginLeft: 8,
+  },
+
+  // Expanded content
+  cardBody: {
+    paddingHorizontal: 18,
+    paddingBottom: 18,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  actionBtn: {
+    flex: 1,
+    borderWidth: 2,
+    borderRadius: 10,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  actionBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  actionBtnFilled: {
+    flex: 1,
+    borderRadius: 10,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  actionBtnTextFilled: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+  },
+
+  // Log In sub-panel
   idLabel: {
     fontSize: 14,
     color: '#555',
     marginBottom: 10,
   },
-  idLabelBold: {
-    fontWeight: '700',
-    color: '#333',
-  },
   idInput: {
     borderWidth: 2,
-    borderColor: '#6B4EFF',
     borderRadius: 10,
     padding: 12,
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: '#333',
     textAlign: 'center',
-    marginBottom: 14,
+    marginBottom: 12,
     backgroundColor: '#FAFAFA',
   },
-  idInputTherapist: {
-    borderColor: '#2E7D6B',
-  },
-  continueButton: {
-    backgroundColor: '#6B4EFF',
-    borderRadius: 12,
-    paddingVertical: 14,
+  continueBtn: {
+    borderRadius: 10,
+    paddingVertical: 13,
     alignItems: 'center',
+    marginBottom: 8,
   },
-  continueButtonTherapist: {
-    backgroundColor: '#2E7D6B',
-  },
-  continueText: {
+  continueBtnText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-    letterSpacing: 0.3,
+  },
+  backLink: {
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  backLinkText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
 
-  // Footer
   disclaimer: {
     fontSize: 11,
-    color: '#BBB',
+    color: '#C0C0C0',
     textAlign: 'center',
     lineHeight: 17,
-    marginTop: 8,
+    marginTop: 20,
   },
 });

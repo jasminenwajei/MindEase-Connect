@@ -43,7 +43,7 @@ export default function TherapistRegistration({ navigation }) {
 
     try {
       // Post the therapist profile to the backend
-      await axios.post(`${API_BASE}/therapists/`, {
+      const response = await axios.post(`${API_BASE}/therapists/`, {
         name,
         email,
         qualifications,
@@ -54,11 +54,13 @@ export default function TherapistRegistration({ navigation }) {
         bio,
       });
 
-      // Confirm registration and return to home
+      const therapistId = response.data.id;
+
+      // Navigate directly to the therapist dashboard with the new ID
       Alert.alert(
         'Registration Successful',
         'Your therapist profile has been created. Patients matched to your profile will be able to book sessions with you.',
-        [{ text: 'OK', onPress: () => navigation.navigate('Home') }]
+        [{ text: 'Go to Dashboard', onPress: () => navigation.navigate('TherapistDashboard', { therapistId }) }]
       );
 
     } catch (error) {

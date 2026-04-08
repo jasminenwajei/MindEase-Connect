@@ -48,8 +48,8 @@ export default function PatientIntakeForm({ route, navigation }) {
     setLoading(true);
 
     try {
-      // Post the patient intake data to the backend
-      const response = await axios.post(`${API_BASE}/patients/`, {
+      // Step 1: create the patient record
+      const patientResponse = await axios.post(`${API_BASE}/patients/`, {
         name,
         email,
         age: parseInt(age),
@@ -60,14 +60,20 @@ export default function PatientIntakeForm({ route, navigation }) {
         intake_text: intakeText,
       });
 
-      // Extract the patient_id returned by the backend
-      const patientId = response.data.id;
+      const newPatientId = patientResponse.data.id;
 
-      // Navigate to the match results screen, passing the patient_id
-      navigation.navigate('MatchResults', { patientId });
+      // Step 2: run the matching algorithm — pass results directly to MatchResults
+      // so the screen doesn't need to re-fetch (timeout: 30s for the AI scorer)
+      const matchResponse = await axios.get(`${API_BASE}/matches/${newPatientId}/`, {
+        timeout: 30000,
+      });
+
+      navigation.navigate('MatchResults', {
+        patientId: newPatientId,
+        matches: matchResponse.data.matches,
+      });
 
     } catch (error) {
-      // Handle errors — most likely a duplicate email or network issue
       const message = error.response?.data?.detail || 'Could not connect to the server. Please check your connection.';
       Alert.alert('Submission Error', message);
     } finally {
@@ -167,7 +173,10 @@ export default function PatientIntakeForm({ route, navigation }) {
 
       {/* Submit button */}
       {loading ? (
-        <ActivityIndicator size="large" color="#6B4EFF" style={styles.loader} />
+        <View style={styles.loadingBlock}>
+          <ActivityIndicator size="large" color="#6B4EFF" />
+          <Text style={styles.loadingLabel}>Finding your matches…</Text>
+        </View>
       ) : (
         <TouchableOpacity style={styles.button} onPress={handleSubmit}>
           <Text style={styles.buttonText}>Find My Matches</Text>
@@ -244,7 +253,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  loader: {
+  loadingBlock: {
     marginTop: 32,
+    alignItems: 'center',
+  },
+  loadingLabel: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#666',
   },
 });

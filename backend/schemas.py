@@ -49,6 +49,7 @@ class TherapistResponse(BaseModel):
 class MatchResult(BaseModel):
     therapist_id: int
     therapist_name: str
+    specialisations: Optional[str] = None
     overall_score: float
     tfidf_score: float
     orientation_score: float
@@ -73,6 +74,16 @@ class AvailabilitySlot(BaseModel):
     class Config:
         from_attributes = True
 
+class BookedSlotResponse(BaseModel):
+    """Enriched booked-slot used by the therapist dashboard.
+    Joins availability slot data with booking and patient info."""
+    slot_id: int
+    therapist_id: int
+    slot_datetime: str
+    booking_id: Optional[int] = None
+    patient_name: Optional[str] = None
+    booking_status: Optional[str] = None
+
 
 class BookingCreate(BaseModel):
     patient_id: int
@@ -89,3 +100,13 @@ class BookingResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class BookingWithTherapistResponse(BaseModel):
+    id: int
+    patient_id: int
+    therapist_id: int
+    therapist_name: str
+    appointment_datetime: datetime
+    status: str
+    created_at: datetime
+    match_percentage: Optional[float] = None
