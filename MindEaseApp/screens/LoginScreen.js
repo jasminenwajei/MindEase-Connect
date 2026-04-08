@@ -1,8 +1,7 @@
 // screens/LoginScreen.js
 // Prototype entry screen for MindEase Connect.
 // Two role cards. Tapping a card expands it to reveal Log In / Sign Up options.
-// Only one card is expanded at a time.
-// Log In shows a numeric ID input; Sign Up navigates to the registration screen.
+// Log In collects email + 4-digit PIN and calls POST /auth/login/.
 
 import React, { useState } from 'react';
 import {
@@ -18,18 +17,23 @@ import {
   Alert,
   LayoutAnimation,
   UIManager,
+  ActivityIndicator,
 } from 'react-native';
+import axios from 'axios';
+
+const API_BASE = 'http://192.168.1.149:8000';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
 export default function LoginScreen({ navigation }) {
-  // Which role card is expanded: null | 'patient' | 'therapist'
   const [expandedRole, setExpandedRole] = useState(null);
-  // Whether the Log In sub-panel is open within the expanded card
   const [showLogin, setShowLogin] = useState(false);
-  const [userId, setUserId] = useState('');
+  const [email, setEmail] = useState('');
+  const [pin, setPin] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const animate = () =>
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -39,24 +43,32 @@ export default function LoginScreen({ navigation }) {
     if (expandedRole === role) {
       setExpandedRole(null);
       setShowLogin(false);
-      setUserId('');
+      setEmail('');
+      setPin('');
+      setError('');
     } else {
       setExpandedRole(role);
       setShowLogin(false);
-      setUserId('');
+      setEmail('');
+      setPin('');
+      setError('');
     }
   };
 
   const handleLogInPress = () => {
     animate();
     setShowLogin(true);
-    setUserId('');
+    setEmail('');
+    setPin('');
+    setError('');
   };
 
   const handleBackToChoice = () => {
     animate();
     setShowLogin(false);
-    setUserId('');
+    setEmail('');
+    setPin('');
+    setError('');
   };
 
   const handleSignUp = () => {
@@ -67,22 +79,44 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
-  const handleContinue = () => {
-    const id = parseInt(userId, 10);
-    if (!userId || isNaN(id) || id <= 0) {
-      Alert.alert('Invalid ID', 'Please enter a valid numeric ID to continue.');
+  const handleLogIn = async () => {
+    if (!email || !pin) {
+      setError('Please enter your email and PIN.');
       return;
     }
-    if (expandedRole === 'patient') {
-      navigation.navigate('PatientDashboard', { patientId: id });
-    } else {
-      navigation.navigate('TherapistDashboard', { therapistId: id });
+    if (pin.length !== 4) {
+      setError('PIN must be exactly 4 digits.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await axios.post(`${API_BASE}/auth/login/`, {
+        email,
+        pin,
+        role: expandedRole,
+      });
+
+      const { user_id, role } = response.data;
+
+      if (role === 'patient') {
+        navigation.navigate('PatientDashboard', { patientId: user_id });
+      } else {
+        navigation.navigate('TherapistDashboard', { therapistId: user_id });
+      }
+    } catch (err) {
+      const detail = err.response?.data?.detail;
+      if (err.response?.status === 401) {
+        setError('Incorrect email or PIN. Please try again.');
+      } else {
+        setError(detail || 'Could not connect to the server.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
-
-  const isPatient = expandedRole === 'patient';
-  const accent = isPatient ? '#6B4EFF' : '#2E7D6B';
-  const accentLight = isPatient ? '#EDE9FF' : '#E6F5F1';
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -139,13 +173,16 @@ export default function LoginScreen({ navigation }) {
               <ExpandedBody
                 accentColor="#6B4EFF"
                 showLogin={showLogin}
-                userId={userId}
-                onUserIdChange={setUserId}
+                email={email}
+                pin={pin}
+                onEmailChange={setEmail}
+                onPinChange={setPin}
                 onLogInPress={handleLogInPress}
                 onSignUpPress={handleSignUp}
-                onContinue={handleContinue}
+                onLogIn={handleLogIn}
                 onBack={handleBackToChoice}
-                loginLabel="patient"
+                loading={loading}
+                error={error}
               />
             )}
           </View>
@@ -182,13 +219,16 @@ export default function LoginScreen({ navigation }) {
               <ExpandedBody
                 accentColor="#2E7D6B"
                 showLogin={showLogin}
-                userId={userId}
-                onUserIdChange={setUserId}
+                email={email}
+                pin={pin}
+                onEmailChange={setEmail}
+                onPinChange={setPin}
                 onLogInPress={handleLogInPress}
                 onSignUpPress={handleSignUp}
-                onContinue={handleContinue}
+                onLogIn={handleLogIn}
                 onBack={handleBackToChoice}
-                loginLabel="therapist"
+                loading={loading}
+                error={error}
               />
             )}
           </View>
@@ -203,17 +243,17 @@ export default function LoginScreen({ navigation }) {
   );
 }
 
-// ── Expanded body (Log In / Sign Up choice, then Log In panel) ─────────────
+// ── Expanded body ────────────────────────────────────────────────────────────
 function ExpandedBody({
   accentColor, showLogin,
-  userId, onUserIdChange,
+  email, pin, onEmailChange, onPinChange,
   onLogInPress, onSignUpPress,
-  onContinue, onBack, loginLabel,
+  onLogIn, onBack,
+  loading, error,
 }) {
   return (
     <View style={styles.cardBody}>
       {!showLogin ? (
-        // Choice: Log In or Sign Up
         <View style={styles.actionRow}>
           <TouchableOpacity
             style={[styles.actionBtn, { borderColor: accentColor }]}
@@ -229,29 +269,45 @@ function ExpandedBody({
           </TouchableOpacity>
         </View>
       ) : (
-        // Log In panel: ID input + Continue
         <View>
-          <Text style={styles.idLabel}>
-            Enter your{' '}
-            <Text style={{ fontWeight: '700', color: '#222' }}>{loginLabel}</Text> ID
-          </Text>
+          <Text style={styles.fieldLabel}>Email</Text>
           <TextInput
-            style={[styles.idInput, { borderColor: accentColor }]}
-            value={userId}
-            onChangeText={onUserIdChange}
-            placeholder="e.g. 1"
-            keyboardType="number-pad"
-            maxLength={6}
+            style={[styles.fieldInput, { borderColor: accentColor }]}
+            value={email}
+            onChangeText={onEmailChange}
+            placeholder="e.g. alex@example.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
             autoFocus
-            returnKeyType="done"
-            onSubmitEditing={onContinue}
+            returnKeyType="next"
           />
-          <TouchableOpacity
-            style={[styles.continueBtn, { backgroundColor: accentColor }]}
-            onPress={onContinue}
-          >
-            <Text style={styles.continueBtnText}>Continue →</Text>
-          </TouchableOpacity>
+
+          <Text style={styles.fieldLabel}>4-digit PIN</Text>
+          <TextInput
+            style={[styles.pinInput, { borderColor: accentColor }]}
+            value={pin}
+            onChangeText={(t) => onPinChange(t.replace(/[^0-9]/g, '').slice(0, 4))}
+            placeholder="••••"
+            keyboardType="number-pad"
+            secureTextEntry
+            maxLength={4}
+            returnKeyType="done"
+            onSubmitEditing={onLogIn}
+          />
+
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+          {loading ? (
+            <ActivityIndicator size="small" color={accentColor} style={{ marginVertical: 14 }} />
+          ) : (
+            <TouchableOpacity
+              style={[styles.continueBtn, { backgroundColor: accentColor }]}
+              onPress={onLogIn}
+            >
+              <Text style={styles.continueBtnText}>Log In →</Text>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity style={styles.backLink} onPress={onBack}>
             <Text style={[styles.backLinkText, { color: accentColor }]}>← Back</Text>
           </TouchableOpacity>
@@ -392,12 +448,22 @@ const styles = StyleSheet.create({
   },
 
   // Log In sub-panel
-  idLabel: {
-    fontSize: 14,
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: '600',
     color: '#555',
-    marginBottom: 10,
+    marginBottom: 6,
+    marginTop: 10,
   },
-  idInput: {
+  fieldInput: {
+    borderWidth: 2,
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 14,
+    color: '#333',
+    backgroundColor: '#FAFAFA',
+  },
+  pinInput: {
     borderWidth: 2,
     borderRadius: 10,
     padding: 12,
@@ -405,13 +471,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#333',
     textAlign: 'center',
-    marginBottom: 12,
     backgroundColor: '#FAFAFA',
+    letterSpacing: 8,
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#D32F2F',
+    marginTop: 8,
+    textAlign: 'center',
   },
   continueBtn: {
     borderRadius: 10,
     paddingVertical: 13,
     alignItems: 'center',
+    marginTop: 14,
     marginBottom: 8,
   },
   continueBtnText: {

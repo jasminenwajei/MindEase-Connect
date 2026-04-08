@@ -5,6 +5,7 @@ from datetime import datetime
 class PatientCreate(BaseModel):
     name: str
     email: str
+    pin: str
     age: Optional[int] = None
     therapy_style: Optional[str] = None
     preferred_language: Optional[str] = "English"
@@ -26,6 +27,7 @@ class PatientResponse(BaseModel):
 class TherapistCreate(BaseModel):
     name: str
     email: str
+    pin: str
     qualifications: Optional[str] = None
     therapy_style: Optional[str] = None
     specialisations: Optional[str] = None

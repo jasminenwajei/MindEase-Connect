@@ -22,6 +22,7 @@ export default function TherapistRegistration({ navigation }) {
   // Form field state
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [pin, setPin] = useState('');
   const [qualifications, setQualifications] = useState('');
   const [therapyStyle, setTherapyStyle] = useState('');
   const [specialisations, setSpecialisations] = useState('');
@@ -34,8 +35,12 @@ export default function TherapistRegistration({ navigation }) {
   const handleSubmit = async () => {
 
     // Validate all required fields
-    if (!name || !email || !qualifications || !therapyStyle || !specialisations || !availability || !sessionPrice || !bio) {
+    if (!name || !email || !pin || !qualifications || !therapyStyle || !specialisations || !availability || !sessionPrice || !bio) {
       Alert.alert('Missing Information', 'Please complete all fields before registering.');
+      return;
+    }
+    if (pin.length !== 4) {
+      Alert.alert('Invalid PIN', 'PIN must be exactly 4 digits.');
       return;
     }
 
@@ -46,6 +51,7 @@ export default function TherapistRegistration({ navigation }) {
       const response = await axios.post(`${API_BASE}/therapists/`, {
         name,
         email,
+        pin,
         qualifications,
         therapy_style: therapyStyle,
         specialisations,
@@ -97,6 +103,17 @@ export default function TherapistRegistration({ navigation }) {
         placeholder="e.g. s.mitchell@practice.com"
         keyboardType="email-address"
         autoCapitalize="none"
+      />
+
+      <Text style={styles.label}>Create a 4-digit PIN</Text>
+      <TextInput
+        style={styles.input}
+        value={pin}
+        onChangeText={(t) => setPin(t.replace(/[^0-9]/g, '').slice(0, 4))}
+        placeholder="e.g. 1234"
+        keyboardType="number-pad"
+        secureTextEntry
+        maxLength={4}
       />
 
       <Text style={styles.label}>Qualifications</Text>

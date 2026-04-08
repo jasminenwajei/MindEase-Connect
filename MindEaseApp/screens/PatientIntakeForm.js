@@ -27,6 +27,7 @@ export default function PatientIntakeForm({ route, navigation }) {
   // Form field state
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [pin, setPin] = useState('');
   const [age, setAge] = useState('');
   const [concerns, setConcerns] = useState('');
   const [therapyStyle, setTherapyStyle] = useState('');
@@ -40,8 +41,12 @@ export default function PatientIntakeForm({ route, navigation }) {
   const handleSubmit = async () => {
 
     // Basic validation — all fields are required for the matching algorithm
-    if (!name || !email || !age || !concerns || !therapyStyle || !availability || !intakeText) {
+    if (!name || !email || !pin || !age || !concerns || !therapyStyle || !availability || !intakeText) {
       Alert.alert('Missing Information', 'Please fill in all fields before continuing.');
+      return;
+    }
+    if (pin.length !== 4) {
+      Alert.alert('Invalid PIN', 'PIN must be exactly 4 digits.');
       return;
     }
 
@@ -52,6 +57,7 @@ export default function PatientIntakeForm({ route, navigation }) {
       const patientResponse = await axios.post(`${API_BASE}/patients/`, {
         name,
         email,
+        pin,
         age: parseInt(age),
         concerns,
         therapy_style: therapyStyle,
@@ -62,16 +68,10 @@ export default function PatientIntakeForm({ route, navigation }) {
 
       const newPatientId = patientResponse.data.id;
 
-      // Step 2: run the matching algorithm — pass results directly to MatchResults
-      // so the screen doesn't need to re-fetch (timeout: 30s for the AI scorer)
-      const matchResponse = await axios.get(`${API_BASE}/matches/${newPatientId}/`, {
-        timeout: 30000,
-      });
+      // Step 2: run the matching algorithm in the background
+      await axios.get(`${API_BASE}/matches/${newPatientId}/`, { timeout: 30000 });
 
-      navigation.navigate('MatchResults', {
-        patientId: newPatientId,
-        matches: matchResponse.data.matches,
-      });
+      navigation.navigate('PatientDashboard', { patientId: newPatientId });
 
     } catch (error) {
       const message = error.response?.data?.detail || 'Could not connect to the server. Please check your connection.';
@@ -117,6 +117,18 @@ export default function PatientIntakeForm({ route, navigation }) {
         placeholder="e.g. alex@example.com"
         keyboardType="email-address"
         autoCapitalize="none"
+      />
+
+      {/* PIN field */}
+      <Text style={styles.label}>Create a 4-digit PIN</Text>
+      <TextInput
+        style={styles.input}
+        value={pin}
+        onChangeText={(t) => setPin(t.replace(/[^0-9]/g, '').slice(0, 4))}
+        placeholder="e.g. 1234"
+        keyboardType="number-pad"
+        secureTextEntry
+        maxLength={4}
       />
 
       {/* Age field */}
