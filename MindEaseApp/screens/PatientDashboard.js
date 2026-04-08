@@ -228,7 +228,7 @@ export default function PatientDashboard({ route, navigation }) {
       {/* CTA — label changes based on whether the patient already has bookings */}
       <TouchableOpacity
         style={styles.ctaButton}
-        onPress={() => navigation.navigate('PatientIntakeForm', { patientId })}
+        onPress={() => navigation.navigate('MatchResults', { patientId })}
       >
         <Text style={styles.ctaText}>
           {hasBookings ? 'Find Another Therapist' : 'Find a Therapist'}

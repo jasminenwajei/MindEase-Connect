@@ -71,7 +71,7 @@ export default function PatientIntakeForm({ route, navigation }) {
       // Step 2: run the matching algorithm in the background
       await axios.get(`${API_BASE}/matches/${newPatientId}/`, { timeout: 30000 });
 
-      navigation.navigate('PatientDashboard', { patientId: newPatientId });
+      navigation.navigate('MatchResults', { patientId: newPatientId });
 
     } catch (error) {
       const message = error.response?.data?.detail || 'Could not connect to the server. Please check your connection.';
