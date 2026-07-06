@@ -97,9 +97,4 @@ This is a prototype. PINs and emails are stored in plain text and are not hashed
 
 ---
 
-## Academic Context
 
-- **Student:** Jasmine — N1189582
-- **Module:** COMP30151/2 — Final Year Project
-- **Institution:** Nottingham Trent University
-- **Submission deadline:** 24 April 2026
